@@ -3,14 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مساعد الطهي الذكي</title>
+    <title>مساعد الطهي الذكي - ابحث عن وصفات بمكوناتك</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Cairo', 'Inter', sans-serif; /* Prefer Cairo for Arabic */
             background-color: #0d1117; /* Dark background */
             color: #c9d1d9; /* Light text */
+            transition: background-color 0.3s ease; /* Smooth transition for dark/light mode */
+        }
+        .dark-mode {
+            background-color: #0d1117;
+            color: #c9d1d9;
+        }
+        .light-mode {
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .light-mode .bg-gray-800 { background-color: #ffffff; }
+        .light-mode .bg-gray-700 { background-color: #e0e2e5; }
+        .light-mode .bg-gray-900 { background-color: #f7f7f7; }
+        .light-mode .text-gray-400, .light-mode .text-gray-300 { color: #555; }
+        .light-mode .border-gray-600 { border-color: #ccc; }
+        .light-mode .text-white { color: #333; }
+        .light-mode .text-blue-400 { color: #2563eb; }
+        .light-mode .bg-blue-500 { background-color: #3b82f6; }
+        .light-mode .hover\:bg-blue-600:hover { background-color: #2563eb; }
+        .light-mode .bg-green-600 { background-color: #10b981; }
+        .light-mode .hover\:bg-green-700:hover { background-color: #059669; }
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            border-bottom: none;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #2d3748; /* bg-gray-700 equivalent */
+            border-radius: 0 0 0.5rem 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #d4d4d4;
+            color: #c9d1d9;
+        }
+        .autocomplete-items div:hover {
+            background-color: #3b4d66; /* Slightly lighter gray */
+        }
+        .autocomplete-active {
+            background-color: #3b4d66 !important;
+            color: #c9d1d9;
+        }
+        .loading-animation {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #2563eb; /* Blue border */
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 
@@ -20,11 +81,15 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'G-1KG7XY75YJ');
-    </script>         
+      gtag('config', 'G-1K67XY75YJ');
+    </script>
 
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
+<body class="flex flex-col items-center justify-center min-h-screen p-4 dark-mode">
+
+    <button id="themeToggle" class="absolute top-4 right-4 p-2 rounded-full bg-gray-700 text-white shadow-md hover:bg-gray-600 transition-colors duration-200">
+        <i class="fas fa-sun" id="themeIcon"></i>
+    </button>
 
     <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl mx-auto transform transition-all duration-300 hover:scale-[1.01]">
         <h1 class="text-4xl font-bold text-center mb-6 text-white border-b-2 border-blue-500 pb-3">
@@ -34,8 +99,7 @@
             أدخل المكونات المتوفرة لديك وسأقترح عليك وصفات شهية!
         </p>
 
-        <div class="mb-6 bg-gray-700 p-4 rounded-lg shadow-inner">
-            <label for="ingredientInput" class="block text-sm font-medium text-gray-300 mb-2">
+        <div class="mb-6 bg-gray-700 p-4 rounded-lg shadow-inner relative"> <label for="ingredientInput" class="block text-sm font-medium text-gray-300 mb-2">
                 أدخل المكونات (مثال: دجاج، أرز، بصل، طماطم):
             </label>
             <div class="flex flex-wrap items-center gap-2 mb-3" id="ingredientsList">
@@ -45,31 +109,32 @@
                         class="flex-grow p-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
                 <button id="addIngredientBtn"
                         class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    إضافة
+                    <i class="fas fa-plus ml-1"></i> إضافة
                 </button>
             </div>
+            <div id="autocomplete-list" class="autocomplete-items hidden"></div>
         </div>
 
         <button id="getRecipesBtn"
                 class="w-full bg-green-600 hover:bg-green-700 text-white py-4 px-8 rounded-xl font-bold text-xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 mb-6">
-            احصل على الوصفات
+            <i class="fas fa-utensils ml-2"></i> احصل على الوصفات
         </button>
 
         <div id="loadingIndicator" class="text-center text-blue-400 text-lg mb-6 hidden">
+            <div class="loading-animation"></div>
             جاري البحث عن الوصفات...
-            <div class="animate-spin inline-block h-6 w-6 border-4 border-blue-400 border-t-transparent rounded-full mr-2"></div>
         </div>
 
         <div id="recipesOutput" class="bg-gray-900 p-5 rounded-lg shadow-lg hidden">
             <h2 class="text-3xl font-bold mb-4 text-blue-400 border-b border-gray-700 pb-2">
-                الوصفات المقترحة:
+                <i class="fas fa-clipboard-list ml-2"></i> الوصفات المقترحة:
             </h2>
             <div id="recipesContainer">
                 </div>
         </div>
 
         <div id="errorMessage" class="bg-red-800 text-white p-4 rounded-lg shadow-md mt-6 hidden" role="alert">
-            <p class="font-bold">خطأ!</p>
+            <p class="font-bold"><i class="fas fa-exclamation-triangle ml-2"></i> خطأ!</p>
             <p id="errorText"></p>
         </div>
 
@@ -85,23 +150,155 @@
         const recipesContainer = document.getElementById('recipesContainer');
         const errorMessage = document.getElementById('errorMessage');
         const errorText = document.getElementById('errorText');
+        const autocompleteList = document.getElementById('autocomplete-list');
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const body = document.body;
 
         let ingredients = []; // Array to store user's ingredients
+        let currentFocus; // For autocomplete keyboard navigation
+
+        // --- Common Ingredients for Autocompletion ---
+        const commonIngredients = [
+            "دجاج", "لحم بقري", "لحم غنم", "سمك", "جمبري", "بيض", "حليب", "جبنة", "زبادي",
+            "أرز", "خبز", "معكرونة", "بطاطس", "بصل", "ثوم", "طماطم", "فلفل", "خيار", "جزر",
+            "خس", "ليمون", "برتقال", "تفاح", "موز", "زيت زيتون", "زيت نباتي", "ملح", "فلفل أسود",
+            "كمون", "بابريكا", "كزبرة", "بقدونس", "نعناع", "خل", "صويا صوص", "عسل", "سكر", "دقيق",
+            "عدس", "حمص", "فول", "ذرة", "فطر", "سبانخ", "بروكلي", "قرنبيط", "كوسة", "باذنجان",
+            "زنجبيل", "كركم", "قرفة", "هيل", "مستردة", "مايونيز", "كاتشب", "شوكولاتة", "فانيليا", "مكسرات"
+        ].sort(); // Sort alphabetically for consistent display
+
+        // --- Theme Toggle Functionality ---
+        function toggleTheme() {
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Apply saved theme on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark'; // Default to dark if not set
+            if (savedTheme === 'light') {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            } else {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            }
+        });
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+
+        // --- Autocomplete Functionality ---
+        ingredientInput.addEventListener("input", function() {
+            let val = this.value;
+            closeAllLists(); // Close any already open lists
+            if (!val) { return false; }
+            currentFocus = -1;
+
+            let a = document.createElement("div");
+            a.setAttribute("id", this.id + "autocomplete-list");
+            a.setAttribute("class", "autocomplete-items");
+            this.parentNode.appendChild(a);
+
+            for (let i = 0; i < commonIngredients.length; i++) {
+                // Check if item starts with the same letters as the input value
+                if (commonIngredients[i].includes(val)) { // Changed from startsWith to includes for broader match
+                    let b = document.createElement("div");
+                    // Make the matching letters bold
+                    b.innerHTML = "<strong>" + commonIngredients[i].substr(0, commonIngredients[i].indexOf(val) + val.length) + "</strong>";
+                    b.innerHTML += commonIngredients[i].substr(commonIngredients[i].indexOf(val) + val.length);
+                    // Insert a hidden input field that will hold the current array item's value
+                    b.innerHTML += "<input type='hidden' value='" + commonIngredients[i] + "'>";
+                    b.addEventListener("click", function() {
+                        ingredientInput.value = this.getElementsByTagName("input")[0].value;
+                        closeAllLists();
+                        addIngredientBtn.click(); // Add ingredient immediately on selection
+                    });
+                    a.appendChild(b);
+                }
+            }
+            if (a.children.length > 0) {
+                autocompleteList.classList.remove('hidden');
+                autocompleteList.innerHTML = a.innerHTML; // Copy children to the actual list div
+            } else {
+                autocompleteList.classList.add('hidden');
+            }
+        });
+
+        ingredientInput.addEventListener("keydown", function(e) {
+            let x = autocompleteList;
+            if (x) x = x.getElementsByTagName("div");
+            if (e.keyCode == 40) { // DOWN key
+                currentFocus++;
+                addActive(x);
+            } else if (e.keyCode == 38) { // UP key
+                currentFocus--;
+                addActive(x);
+            } else if (e.keyCode == 13) { // ENTER key
+                e.preventDefault();
+                if (currentFocus > -1) {
+                    if (x) x[currentFocus].click();
+                } else {
+                    addIngredientBtn.click(); // If no autocomplete selected, add current input
+                }
+            }
+        });
+
+        function addActive(x) {
+            if (!x) return false;
+            removeActive(x);
+            if (currentFocus >= x.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (x.length - 1);
+            x[currentFocus].classList.add("autocomplete-active");
+        }
+
+        function removeActive(x) {
+            for (let i = 0; i < x.length; i++) {
+                x[i].classList.remove("autocomplete-active");
+            }
+        }
+
+        function closeAllLists(elmnt) {
+            let x = document.getElementsByClassName("autocomplete-items");
+            for (let i = 0; i < x.length; i++) {
+                if (elmnt != x[i] && elmnt != ingredientInput) {
+                    x[i].classList.add('hidden'); // Hide the autocomplete list
+                }
+            }
+        }
+        document.addEventListener("click", function (e) {
+            closeAllLists(e.target);
+        });
+
 
         // Function to display ingredients as tags
         function displayIngredients() {
             ingredientsList.innerHTML = ''; // Clear current list
             ingredients.forEach((ing, index) => {
                 const tag = document.createElement('span');
-                tag.className = 'inline-flex items-center bg-blue-500 text-white text-sm font-medium px-3 py-1 rounded-full ml-2 mb-2 shadow-md'; // ml-2 instead of mr-2 for RTL
+                tag.className = 'inline-flex items-center bg-blue-500 text-white text-sm font-medium px-3 py-1 rounded-full ml-2 mb-2 shadow-md transition-all duration-200 transform hover:scale-105'; // ml-2 for RTL
                 tag.innerHTML = `
-                    <button data-index="${index}" class="mr-2 -ml-1.5 p-1 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 remove-ingredient-btn">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
                     ${ing}
-                `; // Reordered for RTL: button then text
+                    <button data-index="${index}" class="mr-2 -ml-1.5 p-1 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 remove-ingredient-btn">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                `; // Reordered for RTL: text then button
                 ingredientsList.appendChild(tag);
             });
         }
@@ -110,7 +307,6 @@
         addIngredientBtn.addEventListener('click', () => {
             const inputVal = ingredientInput.value.trim();
             if (inputVal) {
-                // Split by comma or add as a single item
                 const newIngredients = inputVal.split(',').map(item => item.trim()).filter(item => item !== '');
                 newIngredients.forEach(newIng => {
                     if (!ingredients.includes(newIng)) { // Prevent duplicates
@@ -118,187 +314,10 @@
                     }
                 });
                 ingredientInput.value = ''; // Clear input
+                closeAllLists(); // Close autocomplete list after adding
                 displayIngredients();
             }
         });
 
         ingredientInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                addIngredientBtn.click(); // Simulate click on Enter
-            }
-        });
-
-        // Remove ingredient when tag's remove button is clicked
-        ingredientsList.addEventListener('click', (e) => {
-            if (e.target.closest('.remove-ingredient-btn')) {
-                const index = e.target.closest('.remove-ingredient-btn').dataset.index;
-                ingredients.splice(index, 1);
-                displayIngredients();
-            }
-        });
-
-        // Function to display error messages
-        function showError(message) {
-            errorMessage.classList.remove('hidden');
-            errorText.textContent = message;
-        }
-
-        // Function to hide error messages
-        function hideError() {
-            errorMessage.classList.add('hidden');
-            errorText.textContent = '';
-        }
-
-        // Get recipes from LLM
-        getRecipesBtn.addEventListener('click', async () => {
-            hideError(); // Hide any previous errors
-            recipesOutput.classList.add('hidden'); // Hide previous results
-            recipesContainer.innerHTML = ''; // Clear previous recipes
-
-            if (ingredients.length === 0) {
-                showError('الرجاء إضافة مكون واحد على الأقل.');
-                return;
-            }
-
-            loadingIndicator.classList.remove('hidden'); // Show loading
-
-            const prompt = `
-                بناءً على المكونات التالية: ${ingredients.join(', ')}، اقترح 3 وصفات على الأكثر يمكن تحضيرها.
-                لكل وصفة، قم بتضمين اسمها، قائمة المكونات المطلوبة (بما في ذلك المكونات التي لم يذكرها المستخدم ولكنها أساسية للوصفة)، تعليمات مفصلة خطوة بخطوة، وملاحظات إضافية إذا وجدت.
-                كن إبداعيًا ومفيدًا، وتأكد من أن الوصفات واقعية وقابلة للتحضير بالمكونات الأساسية.
-            `;
-
-            try {
-                let chatHistory = [];
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-                const payload = {
-                    contents: chatHistory,
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "ARRAY",
-                            items: {
-                                type: "OBJECT",
-                                properties: {
-                                    "recipeName": { "type": "STRING", "description": "اسم الوصفة" },
-                                    "ingredients": {
-                                        "type": "ARRAY",
-                                        "items": { "type": "STRING", "description": "قائمة المكونات المطلوبة" }
-                                    },
-                                    "instructions": {
-                                        "type": "ARRAY",
-                                        "items": { "type": "STRING", "description": "خطوات التحضير مفصلة" }
-                                    },
-                                    "notes": { "type": "STRING", "description": "ملاحظات أو نصائح إضافية (اختياري)" }
-                                },
-                                required: ["recipeName", "ingredients", "instructions"]
-                            }
-                        }
-                    }
-                };
-                
-                //
-                // ******************************************************************************
-                //
-                // هام: الصق مفتاح API الخاص بك هنا بين علامتي التنصيص المزدوجة "".
-                // هذا المفتاح ضروري للتطبيق ليتواصل مع خدمة الذكاء الاصطناعي.
-                // يمكنك الحصول عليه من Google Cloud Console (APIs & Services > Credentials > Create Credentials > API Key).
-                //
-                // ******************************************************************************
-                //
-                const apiKey = "AIzaSyBo_mPV81Bs-zDmfQU_kwADX-BnZ4slMQ4"; 
-                // إذا كنت تشغل هذا الكود في بيئة Canvas، ستقوم المنصة بتوفير مفتاح API تلقائياً،
-                // لذا لن تحتاج إلى تعديل هذا السطر في بيئة Canvas نفسها.
-                // لكن عند التشغيل محلياً، يجب إضافة المفتاح يدوياً.
-                
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json(); // Always parse to get full response, including potential API errors with 200 OK status
-
-                // Explicitly check for an API-level error object, even if HTTP status is 200
-                if (result.error) {
-                    throw new Error(`API Error: ${result.error.message || 'An unknown API error occurred.'}`);
-                }
-
-                // Check for HTTP errors after parsing, in case an error response also contains valid JSON structure
-                if (!response.ok) {
-                    // This case is less likely now if result.error handles 4xx/5xx with JSON bodies,
-                    // but it's good for generic HTTP errors (e.g., network issues preventing a JSON response)
-                    throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
-                }
-
-                // Proceed with successful candidates structure
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    
-                    let recipes;
-                    try {
-                        const jsonString = result.candidates[0].content.parts[0].text;
-                        recipes = JSON.parse(jsonString);
-                    } catch (jsonError) {
-                        throw new Error(`Failed to parse AI response as JSON: ${jsonError.message}. Raw response: ${result.candidates[0].content.parts[0].text}`);
-                    }
-
-                    if (recipes.length > 0) {
-                        recipes.forEach(recipe => {
-                            const recipeDiv = document.createElement('div');
-                            recipeDiv.className = 'bg-gray-800 p-4 rounded-lg shadow-md mb-4 transition-all duration-300 hover:shadow-xl';
-                            recipeDiv.innerHTML = `
-                                <h3 class="text-2xl font-semibold text-white mb-2 border-b border-gray-700 pb-1">
-                                    ${recipe.recipeName}
-                                </h3>
-                                <div class="mb-3">
-                                    <h4 class="text-lg font-medium text-gray-300 mb-1">المكونات:</h4>
-                                    <ul class="list-disc list-inside text-gray-400">
-                                        ${recipe.ingredients.map(ing => `<li>${ing}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="mb-3">
-                                    <h4 class="text-lg font-medium text-gray-300 mb-1">التعليمات:</h4>
-                                    <ol class="list-decimal list-inside text-gray-400">
-                                        ${recipe.instructions.map(inst => `<li>${inst}</li>`).join('')}
-                                    </ol>
-                                </div>
-                                ${recipe.notes ? `<div class="text-sm text-gray-500 italic mt-2">ملاحظات: ${recipe.notes}</div>` : ''}
-                            `;
-                            recipesContainer.appendChild(recipeDiv);
-                        });
-                        recipesOutput.classList.remove('hidden');
-                    } else {
-                        showError('لم يتم العثور على وصفات بهذه المكونات. حاول إضافة المزيد من المكونات.');
-                    }
-                } else {
-                    showError('الذكاء الاصطناعي لم يقدم استجابة صالحة (لا توجد مرشحات أو محتوى). يرجى المحاولة مرة أخرى.');
-                    console.error('Unexpected LLM response structure (missing candidates/content/parts):', result);
-                }
-            } catch (error) {
-                console.error('Error fetching recipes:', error);
-                if (error.message.startsWith('API Error:')) {
-                    showError(`خطأ من خدمة الذكاء الاصطناعي: ${error.message.substring(11)}`); // Remove "API Error: " prefix
-                } else if (error.message.includes('HTTP error!')) {
-                    showError(`خطأ في الخادم: ${error.message}. يرجى المحاولة مرة أخرى لاحقًا.`);
-                } else if (error.message.includes('Failed to parse AI response')) {
-                    showError(`حدث خطأ في فهم استجابة الذكاء الاصطناعي: ${error.message}.`);
-                } else if (error.message.includes('Failed to fetch')) { // Specific for network issues before even getting HTTP status
-                    showError('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
-                }
-                 else {
-                    showError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
-                }
-            } finally {
-                loadingIndicator.classList.add('hidden'); // Hide loading regardless of outcome
-            }
-        });
-
-        // Initial setup
-        displayIngredients();
-    </script>
-</body>
-</html>
+            if (e.key === 'Enter' && current
