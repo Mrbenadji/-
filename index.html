@@ -115,7 +115,8 @@
             أدخل المكونات المتوفرة لديك وسأقترح عليك وصفات شهية!
         </p>
 
-        <div class="mb-6 bg-gray-700 p-4 rounded-lg shadow-inner relative"> <label for="ingredientInput" class="block text-sm font-medium text-gray-300 mb-2">
+        <div class="mb-6 bg-gray-700 p-4 rounded-lg shadow-inner relative">
+            <label for="ingredientInput" class="block text-sm font-medium text-gray-300 mb-2">
                 أدخل المكونات (مثال: دجاج، أرز، بصل، طماطم):
             </label>
             <div class="flex flex-wrap items-center gap-2 mb-3" id="ingredientsList">
@@ -227,8 +228,7 @@
             if (!val) { return false; }
             currentFocus = -1;
 
-            let a = document.createElement("div");
-            // No need to set ID or class here, just build the inner HTML for the existing autocompleteList div
+            let a = document.createElement("div"); // Temporary div for building the list items
             
             let matchedItems = commonIngredients.filter(item => item.includes(val)); // Use filter for better performance
 
@@ -243,7 +243,7 @@
                 b.addEventListener("click", function() {
                     ingredientInput.value = this.getElementsByTagName("input")[0].value;
                     closeAllLists();
-                    addIngredientBtn.click(); // Add ingredient immediately on selection
+                    addIngredientFromInput(); // Use the general add function
                 });
                 a.appendChild(b);
             }
@@ -269,7 +269,7 @@
                 if (currentFocus > -1) {
                     if (x && x[currentFocus]) x[currentFocus].click(); // Ensure x[currentFocus] exists
                 } else {
-                    addIngredientBtn.click(); // If no autocomplete selected, add current input
+                    addIngredientFromInput(); // If no autocomplete selected, add current input
                 }
             }
         });
@@ -340,6 +340,7 @@
 
         ingredientInput.addEventListener('keypress', (e) => {
             // Only trigger addIngredientFromInput if ENTER is pressed and no autocomplete item is highlighted
+            // or if autocomplete list is hidden (meaning no suggestions are active)
             if (e.key === 'Enter' && (currentFocus === -1 || autocompleteList.classList.contains('hidden'))) {
                 addIngredientFromInput();
                 e.preventDefault(); // Prevent default form submission if any
@@ -523,7 +524,7 @@
                     showError(`خطأ في الخادم: ${error.message}. يرجى المحاولة مرة أخرى لاحقًا.`);
                 } else if (error.message.includes('فشل في تحليل استجابة الذكاء الاصطناعي')) {
                     showError(`حدث خطأ في فهم استجابة الذكاء الاصطناعي: ${error.message}.`);
-                } else if (error.message.includes('Failed to fetch')) { 
+                } else if (error.message.includes('Failed to fetch')) {
                     showError('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
                 }
                  else {
