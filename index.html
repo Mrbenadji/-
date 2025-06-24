@@ -12,6 +12,10 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0d1117; /* Dark background */
+            /* Added subtle pattern for the background */
+            background-image: radial-gradient(#1a1f26 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-attachment: fixed; /* Ensures pattern stays fixed when scrolling */
             color: #c9d1d9; /* Light text */
         }
     </style>
@@ -74,7 +78,214 @@
 
     </div>
 
+    <!-- Public Opinion / User Reviews Section -->
+    <div class="mt-8 mb-8 bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl mx-auto">
+        <h2 class="text-3xl font-bold text-center mb-6 text-white border-b-2 border-blue-500 pb-3">
+            آراء المستخدمين
+        </h2>
+        <div class="space-y-4" id="userReviewsContainer">
+            <!-- Reviews will be loaded dynamically from Firestore -->
+            <p class="text-gray-400 text-center" id="reviewsLoading">جاري تحميل الآراء...</p>
+        </div>
+
+        <!-- Add Your Opinion Section -->
+        <div class="mt-8 pt-6 border-t border-gray-700">
+            <h3 class="text-2xl font-bold text-center mb-4 text-white">أضف رأيك</h3>
+            <div class="space-y-4">
+                <div>
+                    <label for="reviewerName" class="block text-sm font-medium text-gray-300 mb-2">اسمك:</label>
+                    <input type="text" id="reviewerName" placeholder="اسمك (اختياري)"
+                           class="w-full p-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
+                </div>
+                <div>
+                    <label for="reviewText" class="block text-sm font-medium text-gray-300 mb-2">رأيك:</label>
+                    <textarea id="reviewText" placeholder="اكتب رأيك هنا..." rows="4"
+                              class="w-full p-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 resize-y"></textarea>
+                </div>
+                <button id="submitReviewBtn"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    إرسال الرأي
+                </button>
+                <div id="reviewMessage" class="text-center text-sm mt-2 hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        //
+        // ******************************************************************************
+        //
+        // هام: الصق معلومات تهيئة Firebase الخاصة بمشروعك هنا!
+        // هذه المعلومات تختلف لكل مشروع Firebase.
+        // يمكنك الحصول عليها من إعدادات مشروعك في Firebase Console.
+        // اذهب إلى Project settings -> General -> "Your apps" ثم انقر على "Config"
+        //
+        // عند التشغيل في بيئة Canvas، يتم توفير هذه المتغيرات تلقائيًا.
+        // لكن عند التشغيل محلياً (مثلاً على GitHub Pages)، يجب إضافة التهيئة يدوياً.
+        //
+        // ******************************************************************************
+        //
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // الصق المفاتيح والقيم التي نسختها من Firebase Console هنا.
+            // مثال (استبدل القيم ببيانات مشروعك الحقيقية):
+            // apiKey: "YOUR_ACTUAL_FIREBASE_API_KEY", 
+            // authDomain: "your-project-id.firebaseapp.com",
+            // projectId: "your-project-id",
+            // storageBucket: "your-project-id.appspot.com",
+            // messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            // appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyCfLlZqUVgHhm8WRo4iPXqMO3rwKC82RhU", // مفتاح API الخاص بـ Firebase (ليس Gemini)
+            authDomain: "put-and-get-cd84e.firebaseapp.com",
+            projectId: "put-and-get-cd84e",
+            storageBucket: "put-and-get-cd84e.firebasestorage.app",
+            messagingSenderId: "8603694225",
+            appId: "1:86036942254:web:faf9aecd84de9e6307cc3f"
+        };
+
+        //
+        // ******************************************************************************
+        //
+        // مفتاح API الخاص بـ Gemini تم لصقه هنا مباشرةً بناءً على طلبك.
+        // هذا المفتاح ضروري للتطبيق ليتواصل مع خدمة الذكاء الاصطناعي.
+        // لا تشاركه علناً في بيئات الإنتاج بدون خادم وسيط.
+        //
+        // ******************************************************************************
+        //
+        const geminiApiKey = "AIzaSyBo_mPV81Bs-zDmfQU_kwADX-BnZ4slMQ4"; 
+        
+        // قم بتهيئة Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // متغيرات عامة
+        let currentUserId = null;
+        let isAuthReady = false; // لمتابعة حالة المصادقة الأولية
+
+        // المصادقة المجهولة عند بدء تشغيل التطبيق
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                try {
+                    // إذا لم يكن هناك مستخدم، قم بتسجيل الدخول بشكل مجهول
+                    await signInAnonymously(auth);
+                    console.log("تم تسجيل الدخول بشكل مجهول.");
+                } catch (error) {
+                    console.error("خطأ في تسجيل الدخول المجهول:", error);
+                    document.getElementById('reviewMessage').textContent = "فشل المصادقة للتعليقات. يرجى تحديث الصفحة.";
+                    document.getElementById('reviewMessage').classList.remove('hidden');
+                    document.getElementById('reviewMessage').classList.add('text-red-500');
+                    return; // لا يمكن المتابعة بدون مصادقة
+                }
+            }
+            currentUserId = auth.currentUser?.uid;
+            isAuthReady = true;
+            console.log("User ID:", currentUserId);
+            // بمجرد أن يصبح المصادقة جاهزة، ابدأ بالاستماع إلى الآراء
+            if (currentUserId) {
+                loadReviews();
+            }
+        });
+        
+        const reviewMessageDiv = document.getElementById('reviewMessage');
+        const submitReviewBtn = document.getElementById('submitReviewBtn');
+        const reviewerNameInput = document.getElementById('reviewerName');
+        const reviewTextInput = document.getElementById('reviewText');
+        const userReviewsContainer = document.getElementById('userReviewsContainer');
+        const reviewsLoading = document.getElementById('reviewsLoading');
+
+
+        // دالة لإرسال الرأي إلى Firestore
+        submitReviewBtn.addEventListener('click', async () => {
+            const name = reviewerNameInput.value.trim();
+            const review = reviewTextInput.value.trim();
+
+            if (!review) {
+                reviewMessageDiv.textContent = 'الرجاء كتابة رأيك قبل الإرسال.';
+                reviewMessageDiv.classList.remove('hidden');
+                reviewMessageDiv.classList.remove('text-green-500', 'text-red-500');
+                reviewMessageDiv.classList.add('text-yellow-500');
+                return;
+            }
+
+            if (!isAuthReady || !currentUserId) {
+                reviewMessageDiv.textContent = 'جاري إعداد النظام، يرجى المحاولة بعد قليل...';
+                reviewMessageDiv.classList.remove('hidden');
+                reviewMessageDiv.classList.remove('text-green-500', 'text-red-500');
+                reviewMessageDiv.classList.add('text-yellow-500');
+                return;
+            }
+
+            try {
+                // إضافة المستند الجديد إلى مجموعة 'reviews'
+                await addDoc(collection(db, "reviews"), {
+                    name: name || 'مستخدم غير معروف',
+                    review: review,
+                    timestamp: serverTimestamp() // لتسجيل وقت الإرسال على الخادم
+                });
+                console.log("تم إرسال الرأي بنجاح!");
+                reviewMessageDiv.textContent = 'شكراً لك، تم إرسال رأيك بنجاح!';
+                reviewMessageDiv.classList.remove('hidden', 'text-yellow-500', 'text-red-500');
+                reviewMessageDiv.classList.add('text-green-500');
+
+                // مسح حقول الإدخال بعد الإرسال الناجح
+                reviewerNameInput.value = '';
+                reviewTextInput.value = '';
+
+            } catch (e) {
+                console.error("خطأ في إضافة الرأي: ", e);
+                reviewMessageDiv.textContent = 'حدث خطأ أثناء إرسال رأيك. يرجى المحاولة مرة أخرى.';
+                reviewMessageDiv.classList.remove('hidden', 'text-yellow-500', 'text-green-500');
+                reviewMessageDiv.classList.add('text-red-500');
+            }
+        });
+
+        // دالة لعرض رأي واحد
+        function displayReview(name, review) {
+            const reviewDiv = document.createElement('div');
+            reviewDiv.className = 'bg-gray-700 p-4 rounded-lg shadow-md';
+            reviewDiv.innerHTML = `
+                <p class="text-gray-200 italic mb-2">"${review}"</p>
+                <p class="text-gray-400 text-sm font-semibold text-right">- ${name || 'مستخدم غير معروف'}</p>
+            `;
+            // إضافة الرأي إلى الأعلى (أحدث رأي في الأعلى)
+            userReviewsContainer.prepend(reviewDiv);
+        }
+
+        // دالة لتحميل وعرض الآراء من Firestore في الوقت الفعلي
+        function loadReviews() {
+            reviewsLoading.classList.remove('hidden'); // إظهار مؤشر التحميل
+            // إزالة الآراء الثابتة في الكود (إن وجدت)
+            userReviewsContainer.innerHTML = ''; 
+
+            const q = query(collection(db, "reviews"), orderBy("timestamp", "desc")); // ترتيب الآراء حسب الوقت (الأحدث أولاً)
+
+            onSnapshot(q, (snapshot) => {
+                reviewsLoading.classList.add('hidden'); // إخفاء مؤشر التحميل
+                userReviewsContainer.innerHTML = ''; // مسح الآراء الحالية لتجنب التكرار عند التحديثات
+
+                if (snapshot.empty) {
+                    userReviewsContainer.innerHTML = '<p class="text-gray-400 text-center">لا توجد آراء بعد. كن أول من يضيف رأيه!</p>';
+                    return;
+                }
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    displayReview(data.name, data.review);
+                });
+            }, (error) => {
+                console.error("خطأ في الاستماع للآراء: ", error);
+                reviewsLoading.classList.add('hidden');
+                userReviewsContainer.innerHTML = '<p class="text-red-500 text-center">حدث خطأ في تحميل الآراء.</p>';
+            });
+        }
+    </script>
     <script>
+        // هذا الجزء من الكود لا يزال منفصلاً عن Firebase لسهولة فصل الوظائف
         const ingredientInput = document.getElementById('ingredientInput');
         const addIngredientBtn = document.getElementById('addIngredientBtn');
         const ingredientsList = document.getElementById('ingredientsList');
@@ -85,14 +296,13 @@
         const errorMessage = document.getElementById('errorMessage');
         const errorText = document.getElementById('errorText');
 
-        let ingredients = []; // Array to store user's ingredients
+        let ingredients = [];
 
-        // Function to display ingredients as tags
         function displayIngredients() {
-            ingredientsList.innerHTML = ''; // Clear current list
+            ingredientsList.innerHTML = '';
             ingredients.forEach((ing, index) => {
                 const tag = document.createElement('span');
-                tag.className = 'inline-flex items-center bg-blue-500 text-white text-sm font-medium px-3 py-1 rounded-full ml-2 mb-2 shadow-md'; // ml-2 instead of mr-2 for RTL
+                tag.className = 'inline-flex items-center bg-blue-500 text-white text-sm font-medium px-3 py-1 rounded-full ml-2 mb-2 shadow-md';
                 tag.innerHTML = `
                     <button data-index="${index}" class="mr-2 -ml-1.5 p-1 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 remove-ingredient-btn">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -100,34 +310,31 @@
                         </svg>
                     </button>
                     ${ing}
-                `; // Reordered for RTL: button then text
+                `;
                 ingredientsList.appendChild(tag);
             });
         }
 
-        // Add ingredient when button is clicked or Enter is pressed
         addIngredientBtn.addEventListener('click', () => {
             const inputVal = ingredientInput.value.trim();
             if (inputVal) {
-                // Split by comma or add as a single item
                 const newIngredients = inputVal.split(',').map(item => item.trim()).filter(item => item !== '');
                 newIngredients.forEach(newIng => {
-                    if (!ingredients.includes(newIng)) { // Prevent duplicates
+                    if (!ingredients.includes(newIng)) {
                         ingredients.push(newIng);
                     }
                 });
-                ingredientInput.value = ''; // Clear input
+                ingredientInput.value = '';
                 displayIngredients();
             }
         });
 
         ingredientInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                addIngredientBtn.click(); // Simulate click on Enter
+                addIngredientBtn.click();
             }
         });
 
-        // Remove ingredient when tag's remove button is clicked
         ingredientsList.addEventListener('click', (e) => {
             if (e.target.closest('.remove-ingredient-btn')) {
                 const index = e.target.closest('.remove-ingredient-btn').dataset.index;
@@ -136,30 +343,27 @@
             }
         });
 
-        // Function to display error messages
         function showError(message) {
             errorMessage.classList.remove('hidden');
             errorText.textContent = message;
         }
 
-        // Function to hide error messages
         function hideError() {
             errorMessage.classList.add('hidden');
             errorText.textContent = '';
         }
 
-        // Get recipes from LLM
         getRecipesBtn.addEventListener('click', async () => {
-            hideError(); // Hide any previous errors
-            recipesOutput.classList.add('hidden'); // Hide previous results
-            recipesContainer.innerHTML = ''; // Clear previous recipes
+            hideError();
+            recipesOutput.classList.add('hidden');
+            recipesContainer.innerHTML = '';
 
             if (ingredients.length === 0) {
                 showError('الرجاء إضافة مكون واحد على الأقل.');
                 return;
             }
 
-            loadingIndicator.classList.remove('hidden'); // Show loading
+            loadingIndicator.classList.remove('hidden');
 
             const prompt = `
                 بناءً على المكونات التالية: ${ingredients.join(', ')}، اقترح 3 وصفات على الأكثر يمكن تحضيرها.
@@ -196,21 +400,7 @@
                     }
                 };
                 
-                //
-                // ******************************************************************************
-                //
-                // هام: الصق مفتاح API الخاص بك هنا بين علامتي التنصيص المزدوجة "".
-                // هذا المفتاح ضروري للتطبيق ليتواصل مع خدمة الذكاء الاصطناعي.
-                // يمكنك الحصول عليه من Google Cloud Console (APIs & Services > Credentials > Create Credentials > API Key).
-                //
-                // ******************************************************************************
-                //
-                const apiKey = "AIzaSyBo_mPV81Bs-zDmfQU_kwADX-BnZ4slMQ4"; 
-                // إذا كنت تشغل هذا الكود في بيئة Canvas، ستقوم المنصة بتوفير مفتاح API تلقائياً،
-                // لذا لن تحتاج إلى تعديل هذا السطر في بيئة Canvas نفسها.
-                // لكن عند التشغيل محلياً، يجب إضافة المفتاح يدوياً.
-                
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`; // Use geminiApiKey here
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -218,21 +408,16 @@
                     body: JSON.stringify(payload)
                 });
 
-                const result = await response.json(); // Always parse to get full response, including potential API errors with 200 OK status
+                const result = await response.json();
 
-                // Explicitly check for an API-level error object, even if HTTP status is 200
                 if (result.error) {
                     throw new Error(`API Error: ${result.error.message || 'An unknown API error occurred.'}`);
                 }
 
-                // Check for HTTP errors after parsing, in case an error response also contains valid JSON structure
                 if (!response.ok) {
-                    // This case is less likely now if result.error handles 4xx/5xx with JSON bodies,
-                    // but it's good for generic HTTP errors (e.g., network issues preventing a JSON response)
                     throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
                 }
 
-                // Proceed with successful candidates structure
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
@@ -280,23 +465,23 @@
             } catch (error) {
                 console.error('Error fetching recipes:', error);
                 if (error.message.startsWith('API Error:')) {
-                    showError(`خطأ من خدمة الذكاء الاصطناعي: ${error.message.substring(11)}`); // Remove "API Error: " prefix
+                    showError(`خطأ من خدمة الذكاء الاصطناعي: ${error.message.substring(11)}`);
                 } else if (error.message.includes('HTTP error!')) {
                     showError(`خطأ في الخادم: ${error.message}. يرجى المحاولة مرة أخرى لاحقًا.`);
                 } else if (error.message.includes('Failed to parse AI response')) {
                     showError(`حدث خطأ في فهم استجابة الذكاء الاصطناعي: ${error.message}.`);
-                } else if (error.message.includes('Failed to fetch')) { // Specific for network issues before even getting HTTP status
+                } else if (error.message.includes('Failed to fetch')) {
                     showError('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
                 }
                  else {
                     showError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
                 }
             } finally {
-                loadingIndicator.classList.add('hidden'); // Hide loading regardless of outcome
+                loadingIndicator.classList.add('hidden');
             }
         });
 
-        // Initial setup
+        // Ensure initial ingredients display on load
         displayIngredients();
     </script>
 </body>
