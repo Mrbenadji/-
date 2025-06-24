@@ -4,23 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مساعد الطهي الذكي - ابحث عن وصفات بمكوناتك</title>
+    
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: 'Cairo', 'Inter', sans-serif; /* Prefer Cairo for Arabic */
-            background-color: #0d1117; /* Dark background */
+            background-color: #0d1117; /* Dark background fallback */
             color: #c9d1d9; /* Light text */
             transition: background-color 0.3s ease; /* Smooth transition for dark/light mode */
+            
+            /* Background Image Styles */
+            background-image: url('http://googleusercontent.com/image_generation_content/0'); /* رابط الصورة المولدة */
+            background-size: cover; /* تغطية كاملة للمساحة */
+            background-position: center center; /* توسيط الصورة */
+            background-repeat: no-repeat; /* عدم تكرار الصورة */
+            background-attachment: fixed; /* تثبيت الصورة عند التمرير */
+            
+            /* Dark Overlay for better text readability on background image */
+            position: relative; /* لجعل Overlay يعمل بشكل صحيح */
+            z-index: 1; /* لجعل المحتوى فوق Overlay */
         }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6); /* طبقة شفافة سوداء لتقليل سطوع الصورة */
+            z-index: -1; /* لجعلها خلف المحتوى ولكن فوق الصورة */
+        }
+
+        /* Dark Mode Specific Styles */
         .dark-mode {
-            background-color: #0d1117;
-            color: #c9d1d9;
+            /* For dark mode, the background image and its overlay are applied directly to body */
         }
+        
+        /* Light Mode Specific Styles */
         .light-mode {
             background-color: #f0f2f5;
             color: #333;
+        }
+        .light-mode::before {
+            background-color: rgba(255, 255, 255, 0.7); /* طبقة بيضاء شفافة للوضع الفاتح */
         }
         .light-mode .bg-gray-800 { background-color: #ffffff; }
         .light-mode .bg-gray-700 { background-color: #e0e2e5; }
@@ -33,6 +64,14 @@
         .light-mode .hover\:bg-blue-600:hover { background-color: #2563eb; }
         .light-mode .bg-green-600 { background-color: #10b981; }
         .light-mode .hover\:bg-green-700:hover { background-color: #059669; }
+        .light-mode .bg-red-600 { background-color: #dc2626; } /* Light mode red for clear button */
+        .light-mode .hover\:bg-red-700:hover { background-color: #b91c1c; } /* Light mode hover red */
+        .light-mode .bg-blue-700 { background-color: #3b82f6; } /* PayPal button */
+        .light-mode .hover\:bg-blue-800:hover { background-color: #2563eb; } /* PayPal hover */
+        .light-mode .bg-indigo-600 { background-color: #4f46e5; } /* RedotPay button */
+        .light-mode .hover\:bg-indigo-700:hover { background-color: #4338ca; } /* RedotPay hover */
+
+
         .autocomplete-items {
             position: absolute;
             border: 1px solid #d4d4d4;
@@ -89,6 +128,38 @@
             background-color: #f0f2f5 !important;
             color: #333;
         }
+
+        /* Styles for Copy Button */
+        .copy-button {
+            background-color: #3b82f6; /* Blue */
+            color: white;
+            padding: 4px 8px;
+            border-radius: 0.25rem;
+            font-size: 0.875rem; /* text-sm */
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-right: 0.5rem; /* Add some margin for RTL */
+            display: inline-flex; /* Align icon and text */
+            align-items: center;
+            justify-content: center;
+        }
+        .copy-button:hover {
+            background-color: #2563eb; /* Darker blue */
+        }
+        .copied-message {
+            color: #10b981; /* Green */
+            font-size: 0.875rem; /* text-sm */
+            margin-right: 0.5rem; /* mr-2 for RTL */
+        }
+        .light-mode .copy-button {
+            background-color: #2563eb;
+        }
+        .light-mode .copy-button:hover {
+            background-color: #1d4ed8;
+        }
+        .light-mode .copied-message {
+            color: #059669;
+        }
     </style>
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-1K67XY75YJ"></script>
@@ -103,7 +174,7 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 dark-mode">
 
-    <button id="themeToggle" class="absolute top-4 right-4 p-2 rounded-full bg-gray-700 text-white shadow-md hover:bg-gray-600 transition-colors duration-200">
+    <button id="themeToggle" class="absolute top-4 right-4 p-2 rounded-full bg-gray-700 text-white shadow-md hover:bg-gray-600 transition-colors duration-200" aria-label="تبديل الوضع الفاتح والداكن">
         <i class="fas fa-sun" id="themeIcon"></i>
     </button>
 
@@ -121,18 +192,21 @@
             </label>
             <div class="flex flex-wrap items-center gap-2 mb-3" id="ingredientsList">
                 </div>
-            <div class="flex gap-2">
-                <input type="text" id="ingredientInput" placeholder="أدخل مكون واحد واضغط إضافة"
+            <div class="flex gap-2 flex-wrap sm:flex-nowrap"> <input type="text" id="ingredientInput" placeholder="أدخل مكون واحد واضغط إضافة"
                         class="flex-grow p-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
-                <button id="addIngredientBtn"
-                        class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="addIngredientBtn" aria-label="إضافة مكون"
+                        class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
                     <i class="fas fa-plus ml-1"></i> إضافة
+                </button>
+                <button id="clearIngredientsBtn" aria-label="مسح جميع المكونات"
+                        class="bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-auto mt-2 sm:mt-0">
+                    <i class="fas fa-trash ml-1"></i> مسح الكل
                 </button>
             </div>
             <div id="autocomplete-list" class="autocomplete-items hidden"></div>
         </div>
 
-        <button id="getRecipesBtn"
+        <button id="getRecipesBtn" aria-label="احصل على الوصفات"
                 class="w-full bg-green-600 hover:bg-green-700 text-white py-4 px-8 rounded-xl font-bold text-xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 mb-6">
             <i class="fas fa-utensils ml-2"></i> احصل على الوصفات
         </button>
@@ -154,12 +228,53 @@
             <p class="font-bold"><i class="fas fa-exclamation-triangle ml-2"></i> خطأ!</p>
             <p id="errorText"></p>
         </div>
+        
+        <div class="bg-gray-700 p-5 rounded-lg shadow-inner mt-8 text-center">
+            <h2 class="text-2xl font-bold text-white mb-3 flex items-center justify-center">
+                <i class="fas fa-heart text-red-400 ml-2"></i> ادعمنا!
+            </h2>
+            <p class="text-gray-300 mb-4">
+                هل أعجبك مساعد الطهي الذكي؟ يمكنك دعمنا لتطويره وتحسينه.
+            </p>
+
+            <div class="space-y-6 text-right">
+                <div class="bg-gray-800 p-4 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center justify-end"><i class="fab fa-paypal ml-2"></i> الدفع عبر PayPal:</h3>
+                    <p class="text-gray-300 mb-3 text-right">
+                        ادعمنا مباشرة عبر PayPal. يرجى استخدام الرابط أدناه:
+                    </p>
+                    <a href="https://paypal.me/YOUR_PAYPAL_ME_LINK" target="_blank" rel="noopener noreferrer"
+                       class="inline-block bg-blue-700 hover:bg-blue-800 text-white py-3 px-8 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fab fa-paypal ml-2"></i> ادعمنا عبر PayPal
+                    </a>
+                </div>
+
+                <div class="bg-gray-800 p-4 rounded-lg shadow-md">
+                    <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center justify-end"><i class="fas fa-wallet ml-2"></i> الدفع عبر RedotPay:</h3>
+                    <p class="text-gray-300 mb-3 text-right">
+                        يمكنك إرسال العملات المشفرة (مثل USDT) مباشرة إلى محفظة RedotPay الخاصة بنا.
+                    </p>
+                    <ul class="list-none text-gray-300 text-right">
+                        <li class="mb-2 flex items-center justify-end">
+                            <span class="ml-2">
+                                <span id="redotpayAddress" dir="ltr">YOUR_REDOTPAY_USDT_TRC20_ADDRESS_HERE</span> 
+                                <button class="copy-button" data-target="redotpayAddress"><i class="fas fa-copy"></i></button>
+                            </span>
+                            <strong class="text-white">عنوان محفظة RedotPay (USDT TRC20):</strong> 
+                            <span class="copied-message hidden" id="redotpayCopied">تم النسخ!</span>
+                        </li>
+                        <li class="text-sm text-gray-400"><i class="fas fa-info-circle ml-1"></i> يرجى التأكد من اختيار شبكة TRC20 عند الإرسال.</li>
+                    </ul>
+                    </div>
+            </div>
+        </div>
 
     </div>
 
     <script>
         const ingredientInput = document.getElementById('ingredientInput');
         const addIngredientBtn = document.getElementById('addIngredientBtn');
+        const clearIngredientsBtn = document.getElementById('clearIngredientsBtn');
         const ingredientsList = document.getElementById('ingredientsList');
         const getRecipesBtn = document.getElementById('getRecipesBtn');
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -172,10 +287,9 @@
         const themeIcon = document.getElementById('themeIcon');
         const body = document.body;
 
-        let ingredients = []; // Array to store user's ingredients
-        let currentFocus; // For autocomplete keyboard navigation
+        let ingredients = [];
+        let currentFocus;
 
-        // --- Common Ingredients for Autocompletion ---
         const commonIngredients = [
             "دجاج", "لحم بقري", "لحم غنم", "سمك", "جمبري", "بيض", "حليب", "جبنة", "زبادي",
             "أرز", "خبز", "معكرونة", "بطاطس", "بصل", "ثوم", "طماطم", "فلفل", "خيار", "جزر",
@@ -183,7 +297,7 @@
             "كمون", "بابريكا", "كزبرة", "بقدونس", "نعناع", "خل", "صويا صوص", "عسل", "سكر", "دقيق",
             "عدس", "حمص", "فول", "ذرة", "فطر", "سبانخ", "بروكلي", "قرنبيط", "كوسة", "باذنجان",
             "زنجبيل", "كركم", "قرفة", "هيل", "مستردة", "مايونيز", "كاتشب", "شوكولاتة", "فانيليا", "مكسرات"
-        ].sort(); // Sort alphabetically for consistent display
+        ].sort();
 
         // --- Theme Toggle Functionality ---
         function toggleTheme() {
@@ -307,12 +421,16 @@
         // Function to display ingredients as tags
         function displayIngredients() {
             ingredientsList.innerHTML = ''; // Clear current list
+            if (ingredients.length === 0) {
+                // Optional: show a message when no ingredients are added
+                // ingredientsList.innerHTML = '<p class="text-gray-500">لا توجد مكونات مضافة بعد.</p>';
+            }
             ingredients.forEach((ing, index) => {
                 const tag = document.createElement('span');
                 tag.className = 'inline-flex items-center bg-blue-500 text-white text-sm font-medium px-3 py-1 rounded-full ml-2 mb-2 shadow-md transition-all duration-200 transform hover:scale-105'; // ml-2 for RTL
                 tag.innerHTML = `
                     ${ing}
-                    <button data-index="${index}" class="mr-2 -ml-1.5 p-1 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 remove-ingredient-btn">
+                    <button data-index="${index}" class="mr-2 -ml-1.5 p-1 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 remove-ingredient-btn" aria-label="إزالة مكون ${ing}">
                         <i class="fas fa-times text-xs"></i>
                     </button>
                 `; // Reordered for RTL: text then button
@@ -337,6 +455,15 @@
         }
 
         addIngredientBtn.addEventListener('click', addIngredientFromInput); // Call the new function
+
+        // New: Event listener for Clear All button
+        clearIngredientsBtn.addEventListener('click', () => {
+            ingredients = []; // Clear the ingredients array
+            displayIngredients(); // Update the display (will show nothing)
+            hideError(); // Hide any error messages
+            recipesOutput.classList.add('hidden'); // Hide previous recipes output
+            recipesContainer.innerHTML = ''; // Clear recipes container content
+        });
 
         ingredientInput.addEventListener('keypress', (e) => {
             // Only trigger addIngredientFromInput if ENTER is pressed and no autocomplete item is highlighted
@@ -369,6 +496,24 @@
             errorText.textContent = '';
         }
 
+        // --- Copy to Clipboard Functionality ---
+        document.querySelectorAll('.copy-button').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const targetId = e.currentTarget.dataset.target;
+                const textToCopy = document.getElementById(targetId).textContent.trim();
+                const copiedMessage = document.getElementById(targetId + 'Copied');
+
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    copiedMessage.classList.remove('hidden');
+                    setTimeout(() => copiedMessage.classList.add('hidden'), 2000); // Hide after 2 seconds
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                    alert('فشل النسخ، يرجى النسخ يدوياً: ' + textToCopy);
+                }
+            });
+        });
+
         // Get recipes from LLM
         getRecipesBtn.addEventListener('click', async () => {
             hideError(); // Hide any previous errors
@@ -386,7 +531,7 @@
                 بناءً على المكونات التالية: ${ingredients.join(', ')}، اقترح 3 وصفات على الأكثر يمكن تحضيرها.
                 لكل وصفة، قم بتضمين اسمها، قائمة المكونات المطلوبة (بما في ذلك المكونات التي لم يذكرها المستخدم ولكنها أساسية للوصفة)، تعليمات مفصلة خطوة بخطوة، وملاحظات إضافية إذا وجدت.
                 كن إبداعيًا ومفيدًا، وتأكد من أن الوصفات واقعية وقابلة للتحضير بالمكونات الأساسية.
-                يجب أن تكون جميع الردود باللغة العربية الفصحى.
+                يجب أن تكون جميع الردود باللغة الفصحى.
             `;
 
             try {
@@ -509,8 +654,10 @@
                             recipesContainer.appendChild(recipeDiv);
                         });
                         recipesOutput.classList.remove('hidden');
+                        // Scroll to recipes after they load
+                        recipesOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     } else {
-                        showError('لم يتم العثور على وصفات بهذه المكونات. حاول إضافة المزيد من المكونات.');
+                        showError('لم يتم العثور على وصفات بهذه المكونات. حاول إضافة المزيد من المكونات أو استخدام مكونات شائعة.');
                     }
                 } else {
                     showError('الذكاء الاصطناعي لم يقدم استجابة صالحة (لا توجد مرشحات أو محتوى). يرجى المحاولة مرة أخرى.');
@@ -524,7 +671,7 @@
                     showError(`خطأ في الخادم: ${error.message}. يرجى المحاولة مرة أخرى لاحقًا.`);
                 } else if (error.message.includes('فشل في تحليل استجابة الذكاء الاصطناعي')) {
                     showError(`حدث خطأ في فهم استجابة الذكاء الاصطناعي: ${error.message}.`);
-                } else if (error.message.includes('Failed to fetch')) {
+                } else if (error.message.includes('Failed to fetch')) { 
                     showError('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
                 }
                  else {
