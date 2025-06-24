@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مساعد الطهي الذكي</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -15,6 +13,16 @@
             color: #c9d1d9; /* Light text */
         }
     </style>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1K67XY75YJ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-1KG7XY75YJ');
+    </script>         
+
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
@@ -26,17 +34,15 @@
             أدخل المكونات المتوفرة لديك وسأقترح عليك وصفات شهية!
         </p>
 
-        <!-- Ingredients Input Section -->
         <div class="mb-6 bg-gray-700 p-4 rounded-lg shadow-inner">
             <label for="ingredientInput" class="block text-sm font-medium text-gray-300 mb-2">
                 أدخل المكونات (مثال: دجاج، أرز، بصل، طماطم):
             </label>
             <div class="flex flex-wrap items-center gap-2 mb-3" id="ingredientsList">
-                <!-- Ingredients will be displayed here -->
-            </div>
+                </div>
             <div class="flex gap-2">
                 <input type="text" id="ingredientInput" placeholder="أدخل مكون واحد واضغط إضافة"
-                       class="flex-grow p-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
+                        class="flex-grow p-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
                 <button id="addIngredientBtn"
                         class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     إضافة
@@ -44,29 +50,24 @@
             </div>
         </div>
 
-        <!-- Action Button -->
         <button id="getRecipesBtn"
                 class="w-full bg-green-600 hover:bg-green-700 text-white py-4 px-8 rounded-xl font-bold text-xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 mb-6">
             احصل على الوصفات
         </button>
 
-        <!-- Loading Indicator -->
         <div id="loadingIndicator" class="text-center text-blue-400 text-lg mb-6 hidden">
             جاري البحث عن الوصفات...
             <div class="animate-spin inline-block h-6 w-6 border-4 border-blue-400 border-t-transparent rounded-full mr-2"></div>
         </div>
 
-        <!-- Recipes Display Section -->
         <div id="recipesOutput" class="bg-gray-900 p-5 rounded-lg shadow-lg hidden">
             <h2 class="text-3xl font-bold mb-4 text-blue-400 border-b border-gray-700 pb-2">
                 الوصفات المقترحة:
             </h2>
             <div id="recipesContainer">
-                <!-- Recipes will be injected here by JavaScript -->
-            </div>
+                </div>
         </div>
 
-        <!-- Error Message -->
         <div id="errorMessage" class="bg-red-800 text-white p-4 rounded-lg shadow-md mt-6 hidden" role="alert">
             <p class="font-bold">خطأ!</p>
             <p id="errorText"></p>
