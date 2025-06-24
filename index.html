@@ -39,7 +39,7 @@
             border-bottom: none;
             border-top: none;
             z-index: 99;
-            top: 100%;
+            top: calc(100% + 5px); /* Adjusted to be slightly below input */
             left: 0;
             right: 0;
             max-height: 200px;
@@ -51,7 +51,7 @@
         .autocomplete-items div {
             padding: 10px;
             cursor: pointer;
-            border-bottom: 1px solid #d4d4d4;
+            border-bottom: 1px solid #3b4d66; /* Darker border for dark mode */
             color: #c9d1d9;
         }
         .autocomplete-items div:hover {
@@ -72,6 +72,22 @@
         }
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        /* Light mode specific styles for autocomplete */
+        .light-mode .autocomplete-items {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+        }
+        .light-mode .autocomplete-items div {
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+        .light-mode .autocomplete-items div:hover {
+            background-color: #f0f2f5;
+        }
+        .light-mode .autocomplete-active {
+            background-color: #f0f2f5 !important;
+            color: #333;
         }
     </style>
 
@@ -212,26 +228,24 @@
             currentFocus = -1;
 
             let a = document.createElement("div");
-            a.setAttribute("id", this.id + "autocomplete-list");
-            a.setAttribute("class", "autocomplete-items");
-            this.parentNode.appendChild(a);
+            // No need to set ID or class here, just build the inner HTML for the existing autocompleteList div
+            
+            let matchedItems = commonIngredients.filter(item => item.includes(val)); // Use filter for better performance
 
-            for (let i = 0; i < commonIngredients.length; i++) {
-                // Check if item starts with the same letters as the input value
-                if (commonIngredients[i].includes(val)) { // Changed from startsWith to includes for broader match
-                    let b = document.createElement("div");
-                    // Make the matching letters bold
-                    b.innerHTML = "<strong>" + commonIngredients[i].substr(0, commonIngredients[i].indexOf(val) + val.length) + "</strong>";
-                    b.innerHTML += commonIngredients[i].substr(commonIngredients[i].indexOf(val) + val.length);
-                    // Insert a hidden input field that will hold the current array item's value
-                    b.innerHTML += "<input type='hidden' value='" + commonIngredients[i] + "'>";
-                    b.addEventListener("click", function() {
-                        ingredientInput.value = this.getElementsByTagName("input")[0].value;
-                        closeAllLists();
-                        addIngredientBtn.click(); // Add ingredient immediately on selection
-                    });
-                    a.appendChild(b);
-                }
+            for (let i = 0; i < matchedItems.length; i++) {
+                let b = document.createElement("div");
+                // Make the matching letters bold
+                let startIndex = matchedItems[i].indexOf(val);
+                b.innerHTML = matchedItems[i].substring(0, startIndex) + "<strong>" + matchedItems[i].substring(startIndex, startIndex + val.length) + "</strong>" + matchedItems[i].substring(startIndex + val.length);
+                
+                // Insert a hidden input field that will hold the current array item's value
+                b.innerHTML += "<input type='hidden' value='" + matchedItems[i] + "'>";
+                b.addEventListener("click", function() {
+                    ingredientInput.value = this.getElementsByTagName("input")[0].value;
+                    closeAllLists();
+                    addIngredientBtn.click(); // Add ingredient immediately on selection
+                });
+                a.appendChild(b);
             }
             if (a.children.length > 0) {
                 autocompleteList.classList.remove('hidden');
@@ -253,7 +267,7 @@
             } else if (e.keyCode == 13) { // ENTER key
                 e.preventDefault();
                 if (currentFocus > -1) {
-                    if (x) x[currentFocus].click();
+                    if (x && x[currentFocus]) x[currentFocus].click(); // Ensure x[currentFocus] exists
                 } else {
                     addIngredientBtn.click(); // If no autocomplete selected, add current input
                 }
@@ -266,6 +280,8 @@
             if (currentFocus >= x.length) currentFocus = 0;
             if (currentFocus < 0) currentFocus = (x.length - 1);
             x[currentFocus].classList.add("autocomplete-active");
+            // Scroll to view if element is out of sight
+            x[currentFocus].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function removeActive(x) {
@@ -277,7 +293,8 @@
         function closeAllLists(elmnt) {
             let x = document.getElementsByClassName("autocomplete-items");
             for (let i = 0; i < x.length; i++) {
-                if (elmnt != x[i] && elmnt != ingredientInput) {
+                // Ensure only the direct autocomplete list is hidden, not other elements
+                if (x[i].id === 'autocomplete-list' && elmnt != x[i] && elmnt != ingredientInput) {
                     x[i].classList.add('hidden'); // Hide the autocomplete list
                 }
             }
@@ -304,7 +321,7 @@
         }
 
         // Add ingredient when button is clicked or Enter is pressed
-        addIngredientBtn.addEventListener('click', () => {
+        function addIngredientFromInput() { // Wrapped existing logic in a function
             const inputVal = ingredientInput.value.trim();
             if (inputVal) {
                 const newIngredients = inputVal.split(',').map(item => item.trim()).filter(item => item !== '');
@@ -317,7 +334,208 @@
                 closeAllLists(); // Close autocomplete list after adding
                 displayIngredients();
             }
-        });
+        }
+
+        addIngredientBtn.addEventListener('click', addIngredientFromInput); // Call the new function
 
         ingredientInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && current
+            // Only trigger addIngredientFromInput if ENTER is pressed and no autocomplete item is highlighted
+            if (e.key === 'Enter' && (currentFocus === -1 || autocompleteList.classList.contains('hidden'))) {
+                addIngredientFromInput();
+                e.preventDefault(); // Prevent default form submission if any
+            }
+        });
+
+
+        // Remove ingredient when tag's remove button is clicked
+        ingredientsList.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-ingredient-btn')) {
+                const index = e.target.closest('.remove-ingredient-btn').dataset.index;
+                ingredients.splice(index, 1);
+                displayIngredients();
+            }
+        });
+
+        // Function to display error messages
+        function showError(message) {
+            errorMessage.classList.remove('hidden');
+            errorText.textContent = message;
+        }
+
+        // Function to hide error messages
+        function hideError() {
+            errorMessage.classList.add('hidden');
+            errorText.textContent = '';
+        }
+
+        // Get recipes from LLM
+        getRecipesBtn.addEventListener('click', async () => {
+            hideError(); // Hide any previous errors
+            recipesOutput.classList.add('hidden'); // Hide previous results
+            recipesContainer.innerHTML = ''; // Clear previous recipes
+
+            if (ingredients.length === 0) {
+                showError('الرجاء إضافة مكون واحد على الأقل.');
+                return;
+            }
+
+            loadingIndicator.classList.remove('hidden'); // Show loading
+
+            const prompt = `
+                بناءً على المكونات التالية: ${ingredients.join(', ')}، اقترح 3 وصفات على الأكثر يمكن تحضيرها.
+                لكل وصفة، قم بتضمين اسمها، قائمة المكونات المطلوبة (بما في ذلك المكونات التي لم يذكرها المستخدم ولكنها أساسية للوصفة)، تعليمات مفصلة خطوة بخطوة، وملاحظات إضافية إذا وجدت.
+                كن إبداعيًا ومفيدًا، وتأكد من أن الوصفات واقعية وقابلة للتحضير بالمكونات الأساسية.
+                يجب أن تكون جميع الردود باللغة العربية الفصحى.
+            `;
+
+            try {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "recipeName": { "type": "STRING", "description": "اسم الوصفة" },
+                                    "ingredients": {
+                                        "type": "ARRAY",
+                                        "items": { "type": "STRING", "description": "قائمة المكونات المطلوبة" }
+                                    },
+                                    "instructions": {
+                                        "type": "ARRAY",
+                                        "items": { "type": "STRING", "description": "خطوات التحضير مفصلة" }
+                                    },
+                                    "notes": { "type": "STRING", "description": "ملاحظات أو نصائح إضافية (اختياري)" }
+                                },
+                                required: ["recipeName", "ingredients", "instructions"]
+                            }
+                        }
+                    }
+                };
+
+                //
+                // ************************************************************************************
+                // ******** تنبيه أمني هام جداً بخصوص مفتاح API الخاص بك!           ************
+                // ************************************************************************************
+                //
+                // مفتاح API الخاص بك (AIzaSyBo_mPV81Bs-zDmfQU_kwADX-BnZ4slMQ4) حالياً مرئي وموجود
+                // مباشرة في كود JavaScript الذي يتم تشغيله في متصفح المستخدم (Frontend).
+                //
+                // هذا يعني أن أي شخص يمكنه فتح Console المتصفح الخاص به ورؤية مفتاح API الخاص بك
+                // واستخدامه لإجراء طلبات على حسابك في Google Cloud، مما قد يؤدي إلى تكاليف غير متوقعة
+                // أو تجاوز حدود الاستخدام.
+                //
+                // هذا يمثل "ثغرة أمنية" كبيرة جداً.
+                //
+                // الحل الموصى به بشدة:
+                // --------------------
+                // يجب ألا يتم تضمين مفاتيح API الحساسة مباشرة في كود الواجهة الأمامية (Frontend Code).
+                // الحل الصحيح هو إنشاء "خادم وسيط" (Proxy Server) بسيط (باستخدام Node.js، Python Flask/Django، PHP، إلخ).
+                //
+                // كيف يعمل الخادم الوسيط:
+                // 1. مفتاح API الخاص بك يتم تخزينه بأمان على الخادم الوسيط (وليس في كود الموقع المرئي).
+                // 2. موقعك (Frontend) يرسل طلبات المكونات إلى الخادم الوسيط الخاص بك.
+                // 3. الخادم الوسيط يستخدم مفتاح API الخاص بك لإجراء الطلب إلى Google Gemini API.
+                // 4. الخادم الوسيط يعيد الاستجابة من Gemini إلى موقعك.
+                //
+                // بهذه الطريقة، لا يرى أي مستخدم مفتاح API الخاص بك مطلقاً.
+                //
+                // نظراً لأن GitHub Pages تستضيف مواقع ثابتة فقط (بدون Backend)، فإن تطبيق خادم وسيط
+                // سيتطلب استضافة إضافية (مثل Heroku, Vercel Functions, Google Cloud Functions, AWS Lambda).
+                //
+                // يرجى أخذ هذا التحذير على محمل الجد لسلامة حسابك.
+                //
+                // ************************************************************************************
+                // ************************************************************************************
+                //
+                const apiKey = "AIzaSyBo_mPV81Bs-zDmfQU_kwADX-BnZ4slMQ4"; // مفتاح API الخاص بك
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json(); 
+
+                if (result.error) {
+                    throw new Error(`API Error: ${result.error.message || 'An unknown API error occurred.'}`);
+                }
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
+                }
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    
+                    let recipes;
+                    try {
+                        const jsonString = result.candidates[0].content.parts[0].text;
+                        recipes = JSON.parse(jsonString);
+                    } catch (jsonError) {
+                        throw new Error(`فشل في تحليل استجابة الذكاء الاصطناعي كـ JSON: ${jsonError.message}. الاستجابة الخام: ${result.candidates[0].content.parts[0].text}`);
+                    }
+
+                    if (recipes.length > 0) {
+                        recipes.forEach(recipe => {
+                            const recipeDiv = document.createElement('div');
+                            recipeDiv.className = 'bg-gray-800 p-4 rounded-lg shadow-md mb-4 transition-all duration-300 hover:shadow-xl';
+                            recipeDiv.innerHTML = `
+                                <h3 class="text-2xl font-semibold text-white mb-3 border-b border-gray-700 pb-2 flex items-center">
+                                    <i class="fas fa-book-open ml-2 text-blue-400"></i> ${recipe.recipeName}
+                                </h3>
+                                <div class="mb-4">
+                                    <h4 class="text-lg font-medium text-gray-300 mb-2 flex items-center"><i class="fas fa-shopping-basket ml-2 text-green-400"></i> المكونات:</h4>
+                                    <ul class="list-disc list-inside text-gray-400 pl-4">
+                                        ${recipe.ingredients.map(ing => `<li class="mb-1">${ing}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="mb-4">
+                                    <h4 class="text-lg font-medium text-gray-300 mb-2 flex items-center"><i class="fas fa-concierge-bell ml-2 text-purple-400"></i> التعليمات:</h4>
+                                    <ol class="list-decimal list-inside text-gray-400 pl-4">
+                                        ${recipe.instructions.map(inst => `<li class="mb-1">${inst}</li>`).join('')}
+                                    </ol>
+                                </div>
+                                ${recipe.notes ? `<div class="text-sm text-gray-500 italic mt-3 flex items-center"><i class="fas fa-info-circle ml-2 text-yellow-400"></i> ملاحظات: ${recipe.notes}</div>` : ''}
+                            `;
+                            recipesContainer.appendChild(recipeDiv);
+                        });
+                        recipesOutput.classList.remove('hidden');
+                    } else {
+                        showError('لم يتم العثور على وصفات بهذه المكونات. حاول إضافة المزيد من المكونات.');
+                    }
+                } else {
+                    showError('الذكاء الاصطناعي لم يقدم استجابة صالحة (لا توجد مرشحات أو محتوى). يرجى المحاولة مرة أخرى.');
+                    console.error('Unexpected LLM response structure (missing candidates/content/parts):', result);
+                }
+            } catch (error) {
+                console.error('Error fetching recipes:', error);
+                if (error.message.startsWith('API Error:')) {
+                    showError(`خطأ من خدمة الذكاء الاصطناعي: ${error.message.substring(11)}`);
+                } else if (error.message.includes('HTTP error!')) {
+                    showError(`خطأ في الخادم: ${error.message}. يرجى المحاولة مرة أخرى لاحقًا.`);
+                } else if (error.message.includes('فشل في تحليل استجابة الذكاء الاصطناعي')) {
+                    showError(`حدث خطأ في فهم استجابة الذكاء الاصطناعي: ${error.message}.`);
+                } else if (error.message.includes('Failed to fetch')) { 
+                    showError('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
+                }
+                 else {
+                    showError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
+                }
+            } finally {
+                loadingIndicator.classList.add('hidden'); // Hide loading regardless of outcome
+            }
+        });
+
+        // Initial setup
+        displayIngredients();
+    </script>
+</body>
+</html>
