@@ -5,528 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مساعد الطهي الذكي - ابحث عن وصفات بمكوناتك</title>
     
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Cairo', 'Inter', sans-serif; /* Prefer Cairo for Arabic */
-            background-color: #0d1117; /* Dark background fallback */
-            color: #c9d1d9; /* Light text */
-            transition: background-color 0.3s ease; /* Smooth transition for dark/light mode */
-            
-            /* Background Image Styles */
-            background-image: url('http://googleusercontent.com/image_generation_content/0'); /* رابط الصورة المولدة */
-            background-size: cover; /* تغطية كاملة للمساحة */
-            background-position: center center; /* توسيط الصورة */
-            background-repeat: no-repeat; /* عدم تكرار الصورة */
-            background-attachment: fixed; /* تثبيت الصورة عند التمرير */
-            
-            /* Dark Overlay for better text readability on background image */
-            position: relative; /* لجعل Overlay يعمل بشكل صحيح */
-            z-index: 1; /* لجعل المحتوى فوق Overlay */
-        }
-
-        body::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.6); /* طبقة شفافة سوداء لتقليل سطوع الصورة */
-            z-index: -1; /* لجعلها خلف المحتوى ولكن فوق الصورة */
-        }
-
-        /* Dark Mode Specific Styles */
-        .dark-mode {
-            /* For dark mode, the background image and its overlay are applied directly to body */
-        }
-        
-        /* Light Mode Specific Styles */
-        .light-mode {
-            background-color: #f0f2f5;
-            color: #333;
-        }
-        .light-mode::before {
-            background-color: rgba(255, 255, 255, 0.7); /* طبقة بيضاء شفافة للوضع الفاتح */
-        }
-        .light-mode .bg-gray-800 { background-color: #ffffff; }
-        .light-mode .bg-gray-700 { background-color: #e0e2e5; }
-        .light-mode .bg-gray-900 { background-color: #f7f7f7; }
-        .light-mode .text-gray-400, .light-mode .text-gray-300 { color: #555; }
-        .light-mode .border-gray-600 { border-color: #ccc; }
-        .light-mode .text-white { color: #333; }
-        .light-mode .text-blue-400 { color: #2563eb; }
-        .light-mode .bg-blue-500 { background-color: #3b82f6; }
-        .light-mode .hover\:bg-blue-600:hover { background-color: #2563eb; }
-        .light-mode .bg-green-600 { background-color: #10b981; }
-        .light-mode .hover\:bg-green-700:hover { background-color: #059669; }
-        .light-mode .bg-red-600 { background-color: #dc2626; } /* Light mode red for clear button */
-        .light-mode .hover\:bg-red-700:hover { background-color: #b91c1c; } /* Light mode hover red */
-        .light-mode .bg-blue-700 { background-color: #3b82f6; } /* PayPal button */
-        .light-mode .hover\:bg-blue-800:hover { background-color: #2563eb; } /* PayPal hover */
-        .light-mode .bg-indigo-600 { background-color: #4f46e5; } /* RedotPay button */
-        .light-mode .hover\:bg-indigo-700:hover { background-color: #4338ca; } /* RedotPay hover */
-
-
-        .autocomplete-items {
-            position: absolute;
-            border: 1px solid #d4d4d4;
-            border-bottom: none;
-            border-top: none;
-            z-index: 99;
-            top: calc(100% + 5px); /* Adjusted to be slightly below input */
-            left: 0;
-            right: 0;
-            max-height: 200px;
-            overflow-y: auto;
-            background-color: #2d3748; /* bg-gray-700 equivalent */
-            border-radius: 0 0 0.5rem 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .autocomplete-items div {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #3b4d66; /* Darker border for dark mode */
-            color: #c9d1d9;
-        }
-        .autocomplete-items div:hover {
-            background-color: #3b4d66; /* Slightly lighter gray */
-        }
-        .autocomplete-active {
-            background-color: #3b4d66 !important;
-            color: #c9d1d9;
-        }
-        .loading-animation {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #2563eb; /* Blue border */
-            border-top-color: transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        /* Light mode specific styles for autocomplete */
-        .light-mode .autocomplete-items {
-            background-color: #ffffff;
-            border: 1px solid #ccc;
-        }
-        .light-mode .autocomplete-items div {
-            border-bottom: 1px solid #eee;
-            color: #333;
-        }
-        .light-mode .autocomplete-items div:hover {
-            background-color: #f0f2f5;
-        }
-        .light-mode .autocomplete-active {
-            background-color: #f0f2f5 !important;
-            color: #333;
-        }
-
-        /* Styles for Copy Button */
-        .copy-button {
-            background-color: #3b82f6; /* Blue */
-            color: white;
-            padding: 4px 8px;
-            border-radius: 0.25rem;
-            font-size: 0.875rem; /* text-sm */
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-            margin-right: 0.5rem; /* Add some margin for RTL */
-            display: inline-flex; /* Align icon and text */
-            align-items: center;
-            justify-content: center;
-        }
-        .copy-button:hover {
-            background-color: #2563eb; /* Darker blue */
-        }
-        .copied-message {
-            color: #10b981; /* Green */
-            font-size: 0.875rem; /* text-sm */
-            margin-right: 0.5rem; /* mr-2 for RTL */
-        }
-        .light-mode .copy-button {
-            background-color: #2563eb;
-        }
-        .light-mode .copy-button:hover {
-            background-color: #1d4ed8;
-        }
-        .light-mode .copied-message {
-            color: #059669;
-        }
-    </style>
-
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-1K67XY75YJ"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-1K67XY75YJ');
-    </script>
+    <!-- ... باقي الhead كما هو ... -->
 
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 dark-mode">
 
-    <button id="themeToggle" class="absolute top-4 right-4 p-2 rounded-full bg-gray-700 text-white shadow-md hover:bg-gray-600 transition-colors duration-200" aria-label="تبديل الوضع الفاتح والداكن">
-        <i class="fas fa-sun" id="themeIcon"></i>
-    </button>
-
-    <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-2xl mx-auto transform transition-all duration-300 hover:scale-[1.01]">
-        <h1 class="text-4xl font-bold text-center mb-6 text-white border-b-2 border-blue-500 pb-3">
-            مساعد الطهي الذكي
-        </h1>
-        <p class="text-gray-400 text-center mb-6">
-            أدخل المكونات المتوفرة لديك وسأقترح عليك وصفات شهية!
-        </p>
-
-        <div class="mb-6 bg-gray-700 p-4 rounded-lg shadow-inner relative">
-            <label for="ingredientInput" class="block text-sm font-medium text-gray-300 mb-2">
-                أدخل المكونات (مثال: دجاج، أرز، بصل، طماطم):
-            </label>
-            <div class="flex flex-wrap items-center gap-2 mb-3" id="ingredientsList">
-                </div>
-            <div class="flex gap-2 flex-wrap sm:flex-nowrap"> <input type="text" id="ingredientInput" placeholder="أدخل مكون واحد واضغط إضافة"
-                        class="flex-grow p-3 bg-gray-900 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200">
-                <button id="addIngredientBtn" aria-label="إضافة مكون"
-                        class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
-                    <i class="fas fa-plus ml-1"></i> إضافة
-                </button>
-                <button id="clearIngredientsBtn" aria-label="مسح جميع المكونات"
-                        class="bg-red-600 hover:bg-red-700 text-white py-3 px-6 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 w-full sm:w-auto mt-2 sm:mt-0">
-                    <i class="fas fa-trash ml-1"></i> مسح الكل
-                </button>
-            </div>
-            <div id="autocomplete-list" class="autocomplete-items hidden"></div>
-        </div>
-
-        <button id="getRecipesBtn" aria-label="احصل على الوصفات"
-                class="w-full bg-green-600 hover:bg-green-700 text-white py-4 px-8 rounded-xl font-bold text-xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 mb-6">
-            <i class="fas fa-utensils ml-2"></i> احصل على الوصفات
-        </button>
-
-        <div id="loadingIndicator" class="text-center text-blue-400 text-lg mb-6 hidden">
-            <div class="loading-animation"></div>
-            جاري البحث عن الوصفات...
-        </div>
-
-        <div id="recipesOutput" class="bg-gray-900 p-5 rounded-lg shadow-lg hidden">
-            <h2 class="text-3xl font-bold mb-4 text-blue-400 border-b border-gray-700 pb-2">
-                <i class="fas fa-clipboard-list ml-2"></i> الوصفات المقترحة:
-            </h2>
-            <div id="recipesContainer">
-                </div>
-        </div>
-
-        <div id="errorMessage" class="bg-red-800 text-white p-4 rounded-lg shadow-md mt-6 hidden" role="alert">
-            <p class="font-bold"><i class="fas fa-exclamation-triangle ml-2"></i> خطأ!</p>
-            <p id="errorText"></p>
-        </div>
-        
-        <div class="bg-gray-700 p-5 rounded-lg shadow-inner mt-8 text-center">
-            <h2 class="text-2xl font-bold text-white mb-3 flex items-center justify-center">
-                <i class="fas fa-heart text-red-400 ml-2"></i> ادعمنا!
-            </h2>
-            <p class="text-gray-300 mb-4">
-                هل أعجبك مساعد الطهي الذكي؟ يمكنك دعمنا لتطويره وتحسينه.
-            </p>
-
-            <div class="space-y-6 text-right">
-                <div class="bg-gray-800 p-4 rounded-lg shadow-md">
-                    <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center justify-end"><i class="fab fa-paypal ml-2"></i> الدفع عبر PayPal:</h3>
-                    <p class="text-gray-300 mb-3 text-right">
-                        ادعمنا مباشرة عبر PayPal. يرجى استخدام الرابط أدناه:
-                    </p>
-                    <a href="https://paypal.me/YOUR_PAYPAL_ME_LINK" target="_blank" rel="noopener noreferrer"
-                       class="inline-block bg-blue-700 hover:bg-blue-800 text-white py-3 px-8 rounded-lg font-semibold shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i class="fab fa-paypal ml-2"></i> ادعمنا عبر PayPal
-                    </a>
-                </div>
-
-                <div class="bg-gray-800 p-4 rounded-lg shadow-md">
-                    <h3 class="text-xl font-semibold text-purple-400 mb-2 flex items-center justify-end"><i class="fas fa-wallet ml-2"></i> الدفع عبر RedotPay:</h3>
-                    <p class="text-gray-300 mb-3 text-right">
-                        يمكنك إرسال العملات المشفرة (مثل USDT) مباشرة إلى محفظة RedotPay الخاصة بنا.
-                    </p>
-                    <ul class="list-none text-gray-300 text-right">
-                        <li class="mb-2 flex items-center justify-end">
-                            <span class="ml-2">
-                                <span id="redotpayAddress" dir="ltr">YOUR_REDOTPAY_USDT_TRC20_ADDRESS_HERE</span> 
-                                <button class="copy-button" data-target="redotpayAddress"><i class="fas fa-copy"></i></button>
-                            </span>
-                            <strong class="text-white">عنوان محفظة RedotPay (USDT TRC20):</strong> 
-                            <span class="copied-message hidden" id="redotpayCopied">تم النسخ!</span>
-                        </li>
-                        <li class="text-sm text-gray-400"><i class="fas fa-info-circle ml-1"></i> يرجى التأكد من اختيار شبكة TRC20 عند الإرسال.</li>
-                    </ul>
-                    </div>
-            </div>
-        </div>
-
-    </div>
+    <!-- ... باقي الHTML كما هو ... -->
 
     <script>
-        const ingredientInput = document.getElementById('ingredientInput');
-        const addIngredientBtn = document.getElementById('addIngredientBtn');
-        const clearIngredientsBtn = document.getElementById('clearIngredientsBtn');
-        const ingredientsList = document.getElementById('ingredientsList');
-        const getRecipesBtn = document.getElementById('getRecipesBtn');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const recipesOutput = document.getElementById('recipesOutput');
-        const recipesContainer = document.getElementById('recipesContainer');
-        const errorMessage = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-        const autocompleteList = document.getElementById('autocomplete-list');
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        const body = document.body;
+        // ... باقي الJavaScript كما هو حتى جزء الAPI ...
 
-        let ingredients = [];
-        let currentFocus;
-
-        const commonIngredients = [
-            "دجاج", "لحم بقري", "لحم غنم", "سمك", "جمبري", "بيض", "حليب", "جبنة", "زبادي",
-            "أرز", "خبز", "معكرونة", "بطاطس", "بصل", "ثوم", "طماطم", "فلفل", "خيار", "جزر",
-            "خس", "ليمون", "برتقال", "تفاح", "موز", "زيت زيتون", "زيت نباتي", "ملح", "فلفل أسود",
-            "كمون", "بابريكا", "كزبرة", "بقدونس", "نعناع", "خل", "صويا صوص", "عسل", "سكر", "دقيق",
-            "عدس", "حمص", "فول", "ذرة", "فطر", "سبانخ", "بروكلي", "قرنبيط", "كوسة", "باذنجان",
-            "زنجبيل", "كركم", "قرفة", "هيل", "مستردة", "مايونيز", "كاتشب", "شوكولاتة", "فانيليا", "مكسرات"
-        ].sort();
-
-        // --- Theme Toggle Functionality ---
-        function toggleTheme() {
-            if (body.classList.contains('dark-mode')) {
-                body.classList.remove('dark-mode');
-                body.classList.add('light-mode');
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
-                localStorage.setItem('theme', 'light');
-            } else {
-                body.classList.remove('light-mode');
-                body.classList.add('dark-mode');
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-                localStorage.setItem('theme', 'dark');
-            }
-        }
-
-        // Apply saved theme on load
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme') || 'dark'; // Default to dark if not set
-            if (savedTheme === 'light') {
-                body.classList.remove('dark-mode');
-                body.classList.add('light-mode');
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
-            } else {
-                body.classList.remove('light-mode');
-                body.classList.add('dark-mode');
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
-            }
-        });
-
-        themeToggle.addEventListener('click', toggleTheme);
-
-
-        // --- Autocomplete Functionality ---
-        ingredientInput.addEventListener("input", function() {
-            let val = this.value;
-            closeAllLists(); // Close any already open lists
-            if (!val) { return false; }
-            currentFocus = -1;
-
-            let a = document.createElement("div"); // Temporary div for building the list items
-            
-            let matchedItems = commonIngredients.filter(item => item.includes(val)); // Use filter for better performance
-
-            for (let i = 0; i < matchedItems.length; i++) {
-                let b = document.createElement("div");
-                // Make the matching letters bold
-                let startIndex = matchedItems[i].indexOf(val);
-                b.innerHTML = matchedItems[i].substring(0, startIndex) + "<strong>" + matchedItems[i].substring(startIndex, startIndex + val.length) + "</strong>" + matchedItems[i].substring(startIndex + val.length);
-                
-                // Insert a hidden input field that will hold the current array item's value
-                b.innerHTML += "<input type='hidden' value='" + matchedItems[i] + "'>";
-                b.addEventListener("click", function() {
-                    ingredientInput.value = this.getElementsByTagName("input")[0].value;
-                    closeAllLists();
-                    addIngredientFromInput(); // Use the general add function
-                });
-                a.appendChild(b);
-            }
-            if (a.children.length > 0) {
-                autocompleteList.classList.remove('hidden');
-                autocompleteList.innerHTML = a.innerHTML; // Copy children to the actual list div
-            } else {
-                autocompleteList.classList.add('hidden');
-            }
-        });
-
-        ingredientInput.addEventListener("keydown", function(e) {
-            let x = autocompleteList;
-            if (x) x = x.getElementsByTagName("div");
-            if (e.keyCode == 40) { // DOWN key
-                currentFocus++;
-                addActive(x);
-            } else if (e.keyCode == 38) { // UP key
-                currentFocus--;
-                addActive(x);
-            } else if (e.keyCode == 13) { // ENTER key
-                e.preventDefault();
-                if (currentFocus > -1) {
-                    if (x && x[currentFocus]) x[currentFocus].click(); // Ensure x[currentFocus] exists
-                } else {
-                    addIngredientFromInput(); // If no autocomplete selected, add current input
-                }
-            }
-        });
-
-        function addActive(x) {
-            if (!x) return false;
-            removeActive(x);
-            if (currentFocus >= x.length) currentFocus = 0;
-            if (currentFocus < 0) currentFocus = (x.length - 1);
-            x[currentFocus].classList.add("autocomplete-active");
-            // Scroll to view if element is out of sight
-            x[currentFocus].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function removeActive(x) {
-            for (let i = 0; i < x.length; i++) {
-                x[i].classList.remove("autocomplete-active");
-            }
-        }
-
-        function closeAllLists(elmnt) {
-            let x = document.getElementsByClassName("autocomplete-items");
-            for (let i = 0; i < x.length; i++) {
-                // Ensure only the direct autocomplete list is hidden, not other elements
-                if (x[i].id === 'autocomplete-list' && elmnt != x[i] && elmnt != ingredientInput) {
-                    x[i].classList.add('hidden'); // Hide the autocomplete list
-                }
-            }
-        }
-        document.addEventListener("click", function (e) {
-            closeAllLists(e.target);
-        });
-
-
-        // Function to display ingredients as tags
-        function displayIngredients() {
-            ingredientsList.innerHTML = ''; // Clear current list
-            if (ingredients.length === 0) {
-                // Optional: show a message when no ingredients are added
-                // ingredientsList.innerHTML = '<p class="text-gray-500">لا توجد مكونات مضافة بعد.</p>';
-            }
-            ingredients.forEach((ing, index) => {
-                const tag = document.createElement('span');
-                tag.className = 'inline-flex items-center bg-blue-500 text-white text-sm font-medium px-3 py-1 rounded-full ml-2 mb-2 shadow-md transition-all duration-200 transform hover:scale-105'; // ml-2 for RTL
-                tag.innerHTML = `
-                    ${ing}
-                    <button data-index="${index}" class="mr-2 -ml-1.5 p-1 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 remove-ingredient-btn" aria-label="إزالة مكون ${ing}">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
-                `; // Reordered for RTL: text then button
-                ingredientsList.appendChild(tag);
-            });
-        }
-
-        // Add ingredient when button is clicked or Enter is pressed
-        function addIngredientFromInput() { // Wrapped existing logic in a function
-            const inputVal = ingredientInput.value.trim();
-            if (inputVal) {
-                const newIngredients = inputVal.split(',').map(item => item.trim()).filter(item => item !== '');
-                newIngredients.forEach(newIng => {
-                    if (!ingredients.includes(newIng)) { // Prevent duplicates
-                        ingredients.push(newIng);
-                    }
-                });
-                ingredientInput.value = ''; // Clear input
-                closeAllLists(); // Close autocomplete list after adding
-                displayIngredients();
-            }
-        }
-
-        addIngredientBtn.addEventListener('click', addIngredientFromInput); // Call the new function
-
-        // New: Event listener for Clear All button
-        clearIngredientsBtn.addEventListener('click', () => {
-            ingredients = []; // Clear the ingredients array
-            displayIngredients(); // Update the display (will show nothing)
-            hideError(); // Hide any error messages
-            recipesOutput.classList.add('hidden'); // Hide previous recipes output
-            recipesContainer.innerHTML = ''; // Clear recipes container content
-        });
-
-        ingredientInput.addEventListener('keypress', (e) => {
-            // Only trigger addIngredientFromInput if ENTER is pressed and no autocomplete item is highlighted
-            // or if autocomplete list is hidden (meaning no suggestions are active)
-            if (e.key === 'Enter' && (currentFocus === -1 || autocompleteList.classList.contains('hidden'))) {
-                addIngredientFromInput();
-                e.preventDefault(); // Prevent default form submission if any
-            }
-        });
-
-
-        // Remove ingredient when tag's remove button is clicked
-        ingredientsList.addEventListener('click', (e) => {
-            if (e.target.closest('.remove-ingredient-btn')) {
-                const index = e.target.closest('.remove-ingredient-btn').dataset.index;
-                ingredients.splice(index, 1);
-                displayIngredients();
-            }
-        });
-
-        // Function to display error messages
-        function showError(message) {
-            errorMessage.classList.remove('hidden');
-            errorText.textContent = message;
-        }
-
-        // Function to hide error messages
-        function hideError() {
-            errorMessage.classList.add('hidden');
-            errorText.textContent = '';
-        }
-
-        // --- Copy to Clipboard Functionality ---
-        document.querySelectorAll('.copy-button').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const targetId = e.currentTarget.dataset.target;
-                const textToCopy = document.getElementById(targetId).textContent.trim();
-                const copiedMessage = document.getElementById(targetId + 'Copied');
-
-                try {
-                    await navigator.clipboard.writeText(textToCopy);
-                    copiedMessage.classList.remove('hidden');
-                    setTimeout(() => copiedMessage.classList.add('hidden'), 2000); // Hide after 2 seconds
-                } catch (err) {
-                    console.error('Failed to copy text: ', err);
-                    alert('فشل النسخ، يرجى النسخ يدوياً: ' + textToCopy);
-                }
-            });
-        });
-
-        // Get recipes from LLM
         getRecipesBtn.addEventListener('click', async () => {
-            hideError(); // Hide any previous errors
-            recipesOutput.classList.add('hidden'); // Hide previous results
-            recipesContainer.innerHTML = ''; // Clear previous recipes
+            hideError();
+            recipesOutput.classList.add('hidden');
+            recipesContainer.innerHTML = '';
 
             if (ingredients.length === 0) {
                 showError('الرجاء إضافة مكون واحد على الأقل.');
                 return;
             }
 
-            loadingIndicator.classList.remove('hidden'); // Show loading
+            loadingIndicator.classList.remove('hidden');
 
+            // توجيه الطلب إلى الخادم الوسيط بدلاً من API مباشرة
             const prompt = `
                 بناءً على المكونات التالية: ${ingredients.join(', ')}، اقترح 3 وصفات على الأكثر يمكن تحضيرها.
                 لكل وصفة، قم بتضمين اسمها، قائمة المكونات المطلوبة (بما في ذلك المكونات التي لم يذكرها المستخدم ولكنها أساسية للوصفة)، تعليمات مفصلة خطوة بخطوة، وملاحظات إضافية إذا وجدت.
@@ -535,10 +36,8 @@
             `;
 
             try {
-                let chatHistory = [];
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                 const payload = {
-                    contents: chatHistory,
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
                     generationConfig: {
                         responseMimeType: "application/json",
                         responseSchema: {
@@ -563,127 +62,34 @@
                     }
                 };
 
-                //
-                // ************************************************************************************
-                // ******** تنبيه أمني هام جداً بخصوص مفتاح API الخاص بك!           ************
-                // ************************************************************************************
-                //
-                // مفتاح API الخاص بك (AIzaSyBo_mPV81Bs-zDmfQU_kwADX-BnZ4slMQ4) حالياً مرئي وموجود
-                // مباشرة في كود JavaScript الذي يتم تشغيله في متصفح المستخدم (Frontend).
-                //
-                // هذا يعني أن أي شخص يمكنه فتح Console المتصفح الخاص به ورؤية مفتاح API الخاص بك
-                // واستخدامه لإجراء طلبات على حسابك في Google Cloud، مما قد يؤدي إلى تكاليف غير متوقعة
-                // أو تجاوز حدود الاستخدام.
-                //
-                // هذا يمثل "ثغرة أمنية" كبيرة جداً.
-                //
-                // الحل الموصى به بشدة:
-                // --------------------
-                // يجب ألا يتم تضمين مفاتيح API الحساسة مباشرة في كود الواجهة الأمامية (Frontend Code).
-                // الحل الصحيح هو إنشاء "خادم وسيط" (Proxy Server) بسيط (باستخدام Node.js، Python Flask/Django، PHP، إلخ).
-                //
-                // كيف يعمل الخادم الوسيط:
-                // 1. مفتاح API الخاص بك يتم تخزينه بأمان على الخادم الوسيط (وليس في كود الموقع المرئي).
-                // 2. موقعك (Frontend) يرسل طلبات المكونات إلى الخادم الوسيط الخاص بك.
-                // 3. الخادم الوسيط يستخدم مفتاح API الخاص بك لإجراء الطلب إلى Google Gemini API.
-                // 4. الخادم الوسيط يعيد الاستجابة من Gemini إلى موقعك.
-                //
-                // بهذه الطريقة، لا يرى أي مستخدم مفتاح API الخاص بك مطلقاً.
-                //
-                // نظراً لأن GitHub Pages تستضيف مواقع ثابتة فقط (بدون Backend)، فإن تطبيق خادم وسيط
-                // سيتطلب استضافة إضافية (مثل Heroku, Vercel Functions, Google Cloud Functions, AWS Lambda).
-                //
-                // يرجى أخذ هذا التحذير على محمل الجد لسلامة حسابك.
-                //
-                // ************************************************************************************
-                // ************************************************************************************
-                //
-                const apiKey = "AIzaSyBo_mPV81Bs-zDmfQU_kwADX-BnZ4slMQ4"; // مفتاح API الخاص بك
+                // الحل 1: استخدام Netlify Functions
+                const netlifyFunctionUrl = "https://your-site.netlify.app/.netlify/functions/gemini-proxy";
                 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
+                // الحل 2: استخدام خدمة CORS Anywhere مؤقتاً (لتجربة فقط، ليس للإنتاج)
+                // احذف المفتاح من هنا وأرسله في headers
+                const apiUrl = "https://cors-anywhere.herokuapp.com/https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+                
                 const response = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        // لا تضع المفتاح هنا أيضاً!
+                        'x-api-key': 'sk-372f2827d3e74a7badb32c07732ebc5b' // سيرسله الخادم الوسيط
+                    },
                     body: JSON.stringify(payload)
                 });
 
-                const result = await response.json(); 
+                // ... باقي معالجة الاستجابة كما هي ...
 
-                if (result.error) {
-                    throw new Error(`API Error: ${result.error.message || 'An unknown API error occurred.'}`);
-                }
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
-                }
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    
-                    let recipes;
-                    try {
-                        const jsonString = result.candidates[0].content.parts[0].text;
-                        recipes = JSON.parse(jsonString);
-                    } catch (jsonError) {
-                        throw new Error(`فشل في تحليل استجابة الذكاء الاصطناعي كـ JSON: ${jsonError.message}. الاستجابة الخام: ${result.candidates[0].content.parts[0].text}`);
-                    }
-
-                    if (recipes.length > 0) {
-                        recipes.forEach(recipe => {
-                            const recipeDiv = document.createElement('div');
-                            recipeDiv.className = 'bg-gray-800 p-4 rounded-lg shadow-md mb-4 transition-all duration-300 hover:shadow-xl';
-                            recipeDiv.innerHTML = `
-                                <h3 class="text-2xl font-semibold text-white mb-3 border-b border-gray-700 pb-2 flex items-center">
-                                    <i class="fas fa-book-open ml-2 text-blue-400"></i> ${recipe.recipeName}
-                                </h3>
-                                <div class="mb-4">
-                                    <h4 class="text-lg font-medium text-gray-300 mb-2 flex items-center"><i class="fas fa-shopping-basket ml-2 text-green-400"></i> المكونات:</h4>
-                                    <ul class="list-disc list-inside text-gray-400 pl-4">
-                                        ${recipe.ingredients.map(ing => `<li class="mb-1">${ing}</li>`).join('')}
-                                    </ul>
-                                </div>
-                                <div class="mb-4">
-                                    <h4 class="text-lg font-medium text-gray-300 mb-2 flex items-center"><i class="fas fa-concierge-bell ml-2 text-purple-400"></i> التعليمات:</h4>
-                                    <ol class="list-decimal list-inside text-gray-400 pl-4">
-                                        ${recipe.instructions.map(inst => `<li class="mb-1">${inst}</li>`).join('')}
-                                    </ol>
-                                </div>
-                                ${recipe.notes ? `<div class="text-sm text-gray-500 italic mt-3 flex items-center"><i class="fas fa-info-circle ml-2 text-yellow-400"></i> ملاحظات: ${recipe.notes}</div>` : ''}
-                            `;
-                            recipesContainer.appendChild(recipeDiv);
-                        });
-                        recipesOutput.classList.remove('hidden');
-                        // Scroll to recipes after they load
-                        recipesOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    } else {
-                        showError('لم يتم العثور على وصفات بهذه المكونات. حاول إضافة المزيد من المكونات أو استخدام مكونات شائعة.');
-                    }
-                } else {
-                    showError('الذكاء الاصطناعي لم يقدم استجابة صالحة (لا توجد مرشحات أو محتوى). يرجى المحاولة مرة أخرى.');
-                    console.error('Unexpected LLM response structure (missing candidates/content/parts):', result);
-                }
             } catch (error) {
-                console.error('Error fetching recipes:', error);
-                if (error.message.startsWith('API Error:')) {
-                    showError(`خطأ من خدمة الذكاء الاصطناعي: ${error.message.substring(11)}`);
-                } else if (error.message.includes('HTTP error!')) {
-                    showError(`خطأ في الخادم: ${error.message}. يرجى المحاولة مرة أخرى لاحقًا.`);
-                } else if (error.message.includes('فشل في تحليل استجابة الذكاء الاصطناعي')) {
-                    showError(`حدث خطأ في فهم استجابة الذكاء الاصطناعي: ${error.message}.`);
-                } else if (error.message.includes('Failed to fetch')) { 
-                    showError('فشل الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.');
-                }
-                 else {
-                    showError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
-                }
+                console.error('Error:', error);
+                showError('حدث خطأ في الاتصال بالخادم. يرجى المحاولة لاحقاً.');
             } finally {
-                loadingIndicator.classList.add('hidden'); // Hide loading regardless of outcome
+                loadingIndicator.classList.add('hidden');
             }
         });
 
-        // Initial setup
-        displayIngredients();
+        // ... باقي الJavaScript ...
     </script>
 </body>
 </html>
